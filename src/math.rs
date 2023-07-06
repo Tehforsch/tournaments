@@ -1,11 +1,10 @@
 fn binomial(n: usize, k: usize) -> usize {
-    ((n-k+1)..=n).product::<usize>() / (1..=k).product::<usize>()
+    ((n - k + 1)..=n).product::<usize>() / (1..=k).product::<usize>()
 }
 
 pub fn binomial_distribution(p: f32, n: usize, k: usize) -> f32 {
-    binomial(n, k) as f32 * p.powi((n-k) as i32) * (1.0 - p).powi(k as i32)
+    binomial(n, k) as f32 * p.powi((n - k) as i32) * (1.0 - p).powi(k as i32)
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -27,6 +26,9 @@ mod tests {
     #[test]
     fn binomial_distribution() {
         use super::binomial_distribution;
-        assert_eq!(binomial_distribution(0.5, 3, 2) + binomial_distribution(0.5, 3, 3), 0.5)
+        assert_eq!(
+            binomial_distribution(0.5, 3, 2) + binomial_distribution(0.5, 3, 3),
+            0.5
+        )
     }
 }

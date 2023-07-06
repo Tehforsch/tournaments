@@ -1,0 +1,13 @@
+1_1:
+  type: !BestOfN 1
+  teams:
+    [In, In]
+2_1:
+  type: !BestOfN 1
+  teams:
+    [In, In]
+final:
+  type: !BestOfN 1
+  teams:
+    - [winner, 1_1]
+    - [winner, 2_1]
