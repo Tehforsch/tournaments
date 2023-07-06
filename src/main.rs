@@ -1,26 +1,24 @@
 mod math;
 
-use std::{
-    collections::{BTreeMap, HashMap, HashSet},
-    hash::Hash,
-};
+use std::{collections::HashMap, hash::Hash};
 
 use math::binomial_distribution;
-use rand::{rngs::ThreadRng, Rng};
+use rand::{rngs::ThreadRng, thread_rng, Rng};
 use serde::{Deserialize, Serialize};
-use serde_yaml::Mapping;
 
 type ComponentName = String;
-type PlacementName = String;
+type PlacementName = usize;
+type Placement = (PlacementName, ComponentName);
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
 #[serde(untagged)]
 enum TeamIdentifier {
-    New(String),
-    FromPreviousComponent(PlacementName, ComponentName),
+    Team(usize),
+    FromPreviousComponent(Placement),
 }
 
-struct Team;
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+struct Team(usize);
 
 impl Team {
     fn probability_to_win_against(&self, other: &Self) -> f32 {
@@ -42,7 +40,7 @@ enum ComponentType {
 fn run_best_of_n(n: usize, mut input: Vec<Team>, rng: &mut ThreadRng) -> Vec<Team> {
     assert_eq!(input.len(), 2);
     let p = input[0].probability_to_win_against(&input[1]);
-    let total: f32 = (0..(n - 1) / 2)
+    let total: f32 = (0..=(n - 1) / 2)
         .map(|k| binomial_distribution(p, n, k))
         .sum();
     if rng.gen_range(0.0..=1.0) > total {
@@ -62,66 +60,65 @@ impl Component {
 #[derive(Serialize, Deserialize, Debug)]
 struct Tournament {
     components: Vec<(ComponentName, Component)>,
+    scoring: HashMap<Placement, f32>,
 }
 
 impl Tournament {
-    fn run(&self) {
-        let teams = self.num_participating_teams();
-        for component in self.components.iter() {}
+    fn run(&self) -> HashMap<Team, f32> {
+        let mut rng = thread_rng();
+        let mut teams: HashMap<TeamIdentifier, Team> = self
+            .get_team_numbers()
+            .map(|num| (TeamIdentifier::Team(num), Team(num)))
+            .collect();
+        for (component_name, component) in self.components.iter() {
+            let teams_this_component = component
+                .teams
+                .iter()
+                .enumerate()
+                .map(|(i, team)| teams[&team])
+                .collect();
+            let outcome = component.run(teams_this_component, &mut rng);
+            for (i, team) in outcome.into_iter().enumerate() {
+                teams.insert(
+                    TeamIdentifier::FromPreviousComponent((i, component_name.clone())),
+                    team,
+                );
+            }
+        }
+        self.scoring
+            .iter()
+            .map(|(placement, score)| {
+                (
+                    teams[&TeamIdentifier::FromPreviousComponent(placement.clone())],
+                    *score,
+                )
+            })
+            .collect()
     }
 
-    fn num_participating_teams(&self) -> usize {
-        self.components
-            .iter()
-            .flat_map(|(_, component)| {
-                component.teams.iter().map(|team| match team {
-                    TeamIdentifier::New(_) => 1,
-
-                    _ => 0,
-                })
+    fn get_team_numbers(&self) -> impl Iterator<Item = usize> + '_ {
+        self.components.iter().flat_map(|(_, component)| {
+            component.teams.iter().filter_map(|team| match team {
+                TeamIdentifier::Team(num) => Some(*num),
+                _ => None,
             })
-            .sum()
+        })
     }
 }
 
 fn read_tournament(fname: &str) -> Tournament {
     let contents = std::fs::read_to_string(fname).unwrap();
-    // Keep items in order by not deserializing to a hashmap
-    let mapping: Mapping = serde_yaml::from_str(&contents).unwrap();
-    let components = mapping
-        .into_iter()
-        .map(|item| {
-            let component_name: ComponentName = serde_yaml::from_value(item.0).unwrap();
-            let component: Component = serde_yaml::from_value(item.1).unwrap();
-            (component_name, component)
-        })
-        .collect();
-    Tournament { components }
+    serde_yaml::from_str(&contents).unwrap()
 }
 
 fn main() {
     let t = read_tournament("tournament.yml");
-    dbg!(&t);
-    t.run();
-}
+    let mut total_score: HashMap<Team, f32> = HashMap::default();
 
-#[cfg(test)]
-mod tests {
-    use crate::{Component, ComponentType, TeamIdentifier, Tournament};
-
-    #[test]
-    fn a() {
-        dbg!(serde_yaml::to_string(&Tournament {
-            components: [(
-                "1".into(),
-                Component {
-                    r#type: ComponentType::BestOfN(1),
-                    teams: vec![]
-                }
-            )]
-            .into_iter()
-            .collect()
-        }));
-        panic!();
+    for _ in 0..1000000 {
+        for (team, score) in t.run() {
+            let prev_score = *total_score.get(&team).unwrap_or(&0.0);
+            total_score.insert(team, score + prev_score);
+        }
     }
 }
