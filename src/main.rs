@@ -3,8 +3,10 @@ mod math;
 use std::{collections::HashMap, hash::Hash};
 
 use math::binomial_distribution;
-use rand::{rngs::ThreadRng, thread_rng, Rng};
+use rand::{rngs::ThreadRng, seq::IteratorRandom, thread_rng, Rng};
 use serde::{Deserialize, Serialize};
+
+const STRONG_TEAM_ADVANTAGE: f32 = 0.05;
 
 type ComponentName = String;
 type PlacementName = usize;
@@ -18,11 +20,20 @@ enum TeamIdentifier {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-struct Team(usize);
+struct Team {
+    index: usize,
+    strong: bool,
+}
 
 impl Team {
     fn probability_to_win_against(&self, other: &Self) -> f32 {
-        0.5
+        if self.strong {
+            0.5 + STRONG_TEAM_ADVANTAGE
+        } else if other.strong {
+            0.5 - STRONG_TEAM_ADVANTAGE
+        } else {
+            0.5
+        }
     }
 }
 
@@ -64,12 +75,20 @@ struct Tournament {
 }
 
 impl Tournament {
-    fn run(&self) -> HashMap<Team, f32> {
-        let mut rng = thread_rng();
+    fn run(&self, rng: &mut ThreadRng) -> HashMap<Team, f32> {
         let mut teams: HashMap<TeamIdentifier, Team> = self
             .get_team_numbers()
-            .map(|num| (TeamIdentifier::Team(num), Team(num)))
+            .map(|index| {
+                (
+                    TeamIdentifier::Team(index),
+                    Team {
+                        index,
+                        strong: false,
+                    },
+                )
+            })
             .collect();
+        teams.iter_mut().choose(rng).unwrap().1.strong = true;
         for (component_name, component) in self.components.iter() {
             let teams_this_component = component
                 .teams
@@ -77,7 +96,7 @@ impl Tournament {
                 .enumerate()
                 .map(|(i, team)| teams[&team])
                 .collect();
-            let outcome = component.run(teams_this_component, &mut rng);
+            let outcome = component.run(teams_this_component, rng);
             for (i, team) in outcome.into_iter().enumerate() {
                 teams.insert(
                     TeamIdentifier::FromPreviousComponent((i, component_name.clone())),
@@ -104,6 +123,10 @@ impl Tournament {
             })
         })
     }
+
+    pub fn num_teams(&self) -> usize {
+        self.get_team_numbers().count()
+    }
 }
 
 fn read_tournament(fname: &str) -> Tournament {
@@ -113,12 +136,21 @@ fn read_tournament(fname: &str) -> Tournament {
 
 fn main() {
     let t = read_tournament("tournament.yml");
-    let mut total_score: HashMap<Team, f32> = HashMap::default();
+    let mut score = 0.0;
 
-    for _ in 0..1000000 {
-        for (team, score) in t.run() {
-            let prev_score = *total_score.get(&team).unwrap_or(&0.0);
-            total_score.insert(team, score + prev_score);
+    let mut rng = thread_rng();
+    let num_runs = 100000;
+    for _ in 0..num_runs {
+        for (team, s) in t.run(&mut rng) {
+            if team.strong {
+                score += s;
+            }
         }
     }
+    let expected_score = 1.0 / t.num_teams() as f32;
+    let strong_team_score_advantage = score / num_runs as f32 - expected_score;
+    println!(
+        "Advantage: {:.3}",
+        strong_team_score_advantage / STRONG_TEAM_ADVANTAGE
+    );
 }
