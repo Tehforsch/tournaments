@@ -14,3 +14,4 @@ components:
         - [winner, 2_1]
 scoring:
   [winner, final]: 1.0
+  [loser, final]: 0.5

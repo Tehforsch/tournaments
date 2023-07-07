@@ -77,6 +77,23 @@ struct Runner {
     scoring: Vec<(Placement, Score)>,
 }
 
+#[derive(Default)]
+struct ScoreResult {
+    strong_team: Score,
+    all_teams: Score,
+}
+
+impl std::iter::Sum for ScoreResult {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        let mut total = Self::default();
+        for item in iter {
+            total.strong_team += item.strong_team;
+            total.all_teams += item.all_teams;
+        }
+        total
+    }
+}
+
 impl Runner {
     fn named_placement_to_placement(tournament: &Tournament, team: &TeamIdentifier) -> Placement {
         let (component_index, placement_index) = match team {
@@ -135,7 +152,7 @@ impl Runner {
         }
     }
 
-    fn get_score_of_strong_team(&mut self, teams: Vec<Team>, rng: &mut ThreadRng) -> f64 {
+    fn run(&mut self, teams: Vec<Team>, rng: &mut ThreadRng) {
         self.placements.push(teams);
         for component in self.components.iter() {
             let teams_this_component = component
@@ -146,13 +163,22 @@ impl Runner {
             let outcome = component.run(teams_this_component, rng);
             self.placements.push(outcome);
         }
+    }
+
+    pub fn get_score_result(&mut self, teams: Vec<Team>, rng: &mut ThreadRng) -> ScoreResult {
+        self.run(teams, rng);
         self.scoring
             .iter()
             .map(|(placement, score)| {
-                if self.placements[placement.component][placement.position].strong {
-                    *score
-                } else {
-                    0.0
+                let strong_team_score =
+                    if self.placements[placement.component][placement.position].strong {
+                        *score
+                    } else {
+                        0.0
+                    };
+                ScoreResult {
+                    all_teams: *score,
+                    strong_team: strong_team_score,
                 }
             })
             .sum()
@@ -178,17 +204,18 @@ fn get_teams(num: usize, rng: &mut ThreadRng) -> Vec<Team> {
 fn run_tournament_for_file(file: &str, rng: &mut ThreadRng) {
     println!("{file}");
     let t = read_tournament(&file);
-    let mut score = 0.0;
     let num_teams = t.num_teams();
     let runner = Runner::new(t);
-    let num_runs = 100000000;
-    for _ in 0..num_runs {
-        let mut runner = runner.clone();
-        let teams = get_teams(num_teams, rng);
-        score += runner.get_score_of_strong_team(teams, rng);
-    }
-    let expected_score = 1.0 / num_teams as f64;
-    let strong_team_score_advantage = score / num_runs as f64 - expected_score;
+    let num_runs = 1000000;
+    let score: ScoreResult = (0..num_runs)
+        .map(|_| {
+            let mut runner = runner.clone();
+            let teams = get_teams(num_teams, rng);
+            runner.get_score_result(teams, rng)
+        })
+        .sum();
+    let expected_score = score.all_teams / num_runs as f64 / num_teams as f64;
+    let strong_team_score_advantage = score.strong_team / num_runs as f64 - expected_score;
     println!(
         "Advantage: {:.3}",
         strong_team_score_advantage / STRONG_TEAM_ADVANTAGE
