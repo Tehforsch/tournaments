@@ -20,7 +20,7 @@ pub enum ComponentType {
 fn run_best_of_n(n: usize, mut input: Vec<Team>, rng: &mut ThreadRng) -> Vec<Team> {
     assert_eq!(input.len(), 2);
     let p = input[0].probability_to_win_against(&input[1]);
-    let total: f32 = (0..=(n - 1) / 2)
+    let total: f64 = (0..=(n - 1) / 2)
         .map(|k| binomial_distribution(p, n, k))
         .sum();
     if rng.gen_range(0.0..=1.0) > total {

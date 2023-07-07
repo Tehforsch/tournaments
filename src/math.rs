@@ -2,8 +2,8 @@ fn binomial(n: usize, k: usize) -> usize {
     ((n - k + 1)..=n).product::<usize>() / (1..=k).product::<usize>()
 }
 
-pub fn binomial_distribution(p: f32, n: usize, k: usize) -> f32 {
-    binomial(n, k) as f32 * p.powi((n - k) as i32) * (1.0 - p).powi(k as i32)
+pub fn binomial_distribution(p: f64, n: usize, k: usize) -> f64 {
+    binomial(n, k) as f64 * p.powi((n - k) as i32) * (1.0 - p).powi(k as i32)
 }
 
 #[cfg(test)]

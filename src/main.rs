@@ -12,12 +12,11 @@ use rand::thread_rng;
 use serde::Deserialize;
 use serde::Serialize;
 
-const STRONG_TEAM_ADVANTAGE: f32 = 0.05;
+const STRONG_TEAM_ADVANTAGE: f64 = 0.05;
 
-type Score = f32;
+type Score = f64;
 type ComponentName = String;
 type PlacementName = String;
-type NamedPlacement = (PlacementName, ComponentName);
 
 #[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq, Clone)]
 struct Placement {
@@ -27,9 +26,9 @@ struct Placement {
 
 #[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
 #[serde(untagged)]
-pub enum TeamIdentifier<P> {
+pub enum TeamIdentifier {
     Team(usize),
-    FromPreviousComponent(P),
+    FromPreviousComponent(PlacementName, ComponentName),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -39,7 +38,7 @@ pub struct Team {
 }
 
 impl Team {
-    fn probability_to_win_against(&self, other: &Self) -> f32 {
+    fn probability_to_win_against(&self, other: &Self) -> f64 {
         if self.strong {
             0.5 + STRONG_TEAM_ADVANTAGE
         } else if other.strong {
@@ -52,8 +51,8 @@ impl Team {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Tournament {
-    components: Vec<(ComponentName, Component<TeamIdentifier<NamedPlacement>>)>,
-    scoring: HashMap<TeamIdentifier<NamedPlacement>, Score>,
+    components: Vec<(ComponentName, Component<TeamIdentifier>)>,
+    scoring: HashMap<TeamIdentifier, Score>,
 }
 
 impl Tournament {
@@ -79,13 +78,10 @@ struct Runner {
 }
 
 impl Runner {
-    fn named_placement_to_placement(
-        tournament: &Tournament,
-        team: &TeamIdentifier<NamedPlacement>,
-    ) -> Placement {
+    fn named_placement_to_placement(tournament: &Tournament, team: &TeamIdentifier) -> Placement {
         let (component_index, placement_index) = match team {
             TeamIdentifier::Team(num) => (0, *num),
-            TeamIdentifier::FromPreviousComponent((placement, component)) => {
+            TeamIdentifier::FromPreviousComponent(placement, component) => {
                 let (index, component) = tournament
                     .components
                     .iter()
@@ -139,7 +135,7 @@ impl Runner {
         }
     }
 
-    fn get_score_of_strong_team(&mut self, teams: Vec<Team>, rng: &mut ThreadRng) -> f32 {
+    fn get_score_of_strong_team(&mut self, teams: Vec<Team>, rng: &mut ThreadRng) -> f64 {
         self.placements.push(teams);
         for component in self.components.iter() {
             let teams_this_component = component
@@ -185,14 +181,14 @@ fn run_tournament_for_file(file: &str, rng: &mut ThreadRng) {
     let mut score = 0.0;
     let num_teams = t.num_teams();
     let runner = Runner::new(t);
-    let num_runs = 10000000;
+    let num_runs = 100000000;
     for _ in 0..num_runs {
         let mut runner = runner.clone();
         let teams = get_teams(num_teams, rng);
         score += runner.get_score_of_strong_team(teams, rng);
     }
-    let expected_score = 1.0 / num_teams as f32;
-    let strong_team_score_advantage = score / num_runs as f32 - expected_score;
+    let expected_score = 1.0 / num_teams as f64;
+    let strong_team_score_advantage = score / num_runs as f64 - expected_score;
     println!(
         "Advantage: {:.3}",
         strong_team_score_advantage / STRONG_TEAM_ADVANTAGE
