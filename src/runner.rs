@@ -24,7 +24,7 @@ impl Runner {
                     .components
                     .iter()
                     .enumerate()
-                    .find(|(_, (comp_name, _))| component == comp_name)
+                    .find(|(_, (comp_name, _))| &component == comp_name)
                     .map(|(i, (_, component))| (i, component))
                     .unwrap();
                 let placement_index = component.get_placement_index_from_placement_name(placement);

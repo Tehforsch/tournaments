@@ -7,11 +7,11 @@ use std::env;
 use std::hash::Hash;
 
 use component::Component;
+use linked_hash_map::LinkedHashMap;
 use rand::rngs::ThreadRng;
 use rand::seq::IteratorRandom;
 use rand::thread_rng;
 use serde::Deserialize;
-use serde::Serialize;
 
 use crate::runner::Runner;
 
@@ -21,13 +21,13 @@ type Score = f64;
 type ComponentName = String;
 type PlacementName = String;
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq, Clone)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq, Clone)]
 struct Placement {
     component: usize,
     position: usize,
 }
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum TeamIdentifier {
     Team(usize),
@@ -52,9 +52,11 @@ impl Team {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Tournament {
-    components: Vec<(ComponentName, Component<TeamIdentifier>)>,
+    // Linked hash map is used here to preserve order of the components during
+    // deserialization.
+    components: LinkedHashMap<ComponentName, Component<TeamIdentifier>>,
     scoring: HashMap<TeamIdentifier, Score>,
 }
 
@@ -111,7 +113,7 @@ fn run_tournament_for_file(file: &str, rng: &mut ThreadRng) {
     let t = read_tournament(&file);
     let num_teams = t.num_teams();
     let runner = Runner::new(t);
-    let num_runs = 10000000;
+    let num_runs = 1000000;
     let score: ScoreResult = (0..num_runs)
         .map(|_| {
             let mut runner = runner.clone();
