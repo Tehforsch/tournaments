@@ -11,6 +11,7 @@ use linked_hash_map::LinkedHashMap;
 use rand::rngs::ThreadRng;
 use rand::seq::IteratorRandom;
 use rand::thread_rng;
+use rand::Rng;
 use serde::Deserialize;
 
 use crate::runner::Runner;
@@ -49,6 +50,11 @@ impl Team {
         } else {
             0.5
         }
+    }
+
+    fn wins_against(&self, other: &Self, rng: &mut ThreadRng) -> bool {
+        let p = self.probability_to_win_against(other);
+        rng.gen_range(0.0..=1.0) < p
     }
 }
 

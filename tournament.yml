@@ -1,17 +1,19 @@
 components:
-  1_1:
-    type: !BestOfN 7
+  group1:
+    type: !GroupStage
+      num_games_per_series: 2
     teams:
       [0, 1]
-  2_1:
-    type: !BestOfN 1
+  group2:
+    type: !GroupStage
+      num_games_per_series: 2
     teams:
       [2, 3]
   final:
     type: !BestOfN 1
     teams:
-      - [winner, 1_1]
-      - [winner, 2_1]
+      - [1st, group1]
+      - [1st, group2]
 scoring:
   [winner, final]: 1.0
   [loser, final]: 0.0

@@ -76,13 +76,13 @@ impl Runner {
     fn run(&mut self, teams: Vec<Team>, rng: &mut ThreadRng) {
         self.placements.push(teams);
         for component in self.components.iter() {
-            let teams_this_component = component
+            let mut teams_this_component: Vec<_> = component
                 .teams
                 .iter()
                 .map(|team| self.placements[team.component][team.position])
                 .collect();
-            let outcome = component.run(teams_this_component, rng);
-            self.placements.push(outcome);
+            component.run(&mut teams_this_component, rng);
+            self.placements.push(teams_this_component);
         }
     }
 
