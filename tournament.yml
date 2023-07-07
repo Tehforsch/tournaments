@@ -1,6 +1,6 @@
 components:
   - - 1_1
-    - type: !BestOfN 1
+    - type: !BestOfN 7
       teams:
         [0, 1]
   - - 2_1
@@ -10,7 +10,7 @@ components:
   - - final
     - type: !BestOfN 1
       teams:
-        - [0, 1_1]
-        - [0, 2_1]
+        - [winner, 1_1]
+        - [winner, 2_1]
 scoring:
-  [0, final]: 1.0
+  [winner, final]: 1.0
