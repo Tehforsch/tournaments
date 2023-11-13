@@ -21,23 +21,30 @@ pub enum ComponentType {
     GroupStage(GroupStage),
 }
 
-fn run_best_of_n(n: usize, input: &mut [Team], rng: &mut ThreadRng) {
-    assert_eq!(input.len(), 2);
-    let p = input[0].probability_to_win_against(&input[1]);
-    let total: f64 = (0..=(n - 1) / 2)
-        .map(|k| binomial_distribution(p, n, k))
-        .sum();
-    if rng.gen_range(0.0..=1.0) > total {
-        input.swap(0, 1);
-    }
+#[derive(Deserialize, Debug, Clone, Copy)]
+struct BestOfN {
+    num_games: usize,
 }
 
-fn run_round_robin(n: usize, input: &mut [Team], rng: &mut ThreadRng) {}
+impl BestOfN {
+    fn run(&self, input: &mut [Team], rng: &mut ThreadRng) {
+        assert_eq!(input.len(), 2);
+        let p = input[0].probability_to_win_against(&input[1]);
+        let total: f64 = (0..=(self.num_games - 1) / 2)
+            .map(|k| binomial_distribution(p, self.num_games, k))
+            .sum();
+        if rng.gen_range(0.0..=1.0) > total {
+            input.swap(0, 1);
+        }
+    }
+
+    fn run_round_robin(&self, input: &mut [Team], rng: &mut ThreadRng) {}
+}
 
 impl<P> Component<P> {
     pub fn run(&self, input: &mut [Team], rng: &mut ThreadRng) {
         match self.r#type {
-            ComponentType::BestOfN(n) => run_best_of_n(n, input, rng),
+            ComponentType::BestOfN(n) => BestOfN { num_games: n }.run(input, rng),
             ComponentType::GroupStage(group) => group.run(input, rng),
         }
     }
@@ -87,7 +94,12 @@ impl GroupStage {
         rng: &mut ThreadRng,
     ) {
         let ties = identify_tied_teams(input, num_games_won);
-        for tie in ties {}
+        for tie in ties {
+            BestOfN {
+                num_games: self.num_games_per_series,
+            }
+            .run_round_robin(&mut input[tie.start_index..tie.end_index], rng);
+        }
     }
 
     fn get_placement_index_from_placement_name(&self, placement: &str) -> usize {
@@ -180,15 +192,16 @@ mod tests {
             super::identify_tied_teams(&teams, &num_games_won),
             vec![
                 TiedTeams {
-                teams: vec![10, 12],
-                start_index: 0,
-                end_index: 1,
-            },
+                    teams: vec![10, 12],
+                    start_index: 0,
+                    end_index: 1,
+                },
                 TiedTeams {
-                teams: vec![13, 11],
-                start_index: 2,
-                end_index: 3,
-            },]
+                    teams: vec![13, 11],
+                    start_index: 2,
+                    end_index: 3,
+                },
+            ]
         );
     }
 }
