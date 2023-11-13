@@ -35,7 +35,7 @@ pub enum TeamIdentifier {
     FromPreviousComponent(PlacementName, ComponentName),
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Team {
     index: usize,
     strong: bool,
