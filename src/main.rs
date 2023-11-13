@@ -12,11 +12,13 @@ use rand::rngs::ThreadRng;
 use rand::seq::IteratorRandom;
 use rand::thread_rng;
 use rand::Rng;
+use rayon::iter::ParallelIterator;
+use rayon::prelude::IntoParallelIterator;
 use serde::Deserialize;
 
 use crate::runner::Runner;
 
-const STRONG_TEAM_ADVANTAGE: f64 = 0.05;
+const STRONG_TEAM_ADVANTAGE: f64 = 0.10;
 
 type Score = f64;
 type ComponentName = String;
@@ -81,7 +83,7 @@ impl Tournament {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct ScoreResult {
     strong_team: Score,
     all_teams: Score,
@@ -114,19 +116,22 @@ fn get_teams(num: usize, rng: &mut ThreadRng) -> Vec<Team> {
     teams
 }
 
-fn run_tournament_for_file(file: &str, rng: &mut ThreadRng) {
+fn run_tournament_for_file(file: &str) {
     println!("{file}");
     let t = read_tournament(&file);
     let num_teams = t.num_teams();
     let runner = Runner::new(t);
-    let num_runs = 1000000;
+    let num_runs = 10000000;
     let score: ScoreResult = (0..num_runs)
+        .into_par_iter()
         .map(|_| {
+            let mut rng = thread_rng();
             let mut runner = runner.clone();
-            let teams = get_teams(num_teams, rng);
-            runner.get_score_result(teams, rng)
+            let teams = get_teams(num_teams, &mut rng);
+            runner.get_score_result(teams, &mut rng)
         })
         .sum();
+    dbg!(&score);
     let expected_score = score.all_teams / num_runs as f64 / num_teams as f64;
     let strong_team_score_advantage = score.strong_team / num_runs as f64 - expected_score;
     println!(
@@ -137,8 +142,7 @@ fn run_tournament_for_file(file: &str, rng: &mut ThreadRng) {
 
 fn main() {
     let files: Vec<String> = env::args().skip(1).collect();
-    let mut rng = thread_rng();
     for file in files {
-        run_tournament_for_file(&file, &mut rng);
+        run_tournament_for_file(&file);
     }
 }
