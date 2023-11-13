@@ -8,6 +8,7 @@ use std::hash::Hash;
 
 use component::Component;
 use linked_hash_map::LinkedHashMap;
+use ordered_float::OrderedFloat;
 use rand::rngs::ThreadRng;
 use rand::seq::IteratorRandom;
 use rand::thread_rng;
@@ -18,7 +19,7 @@ use serde::Deserialize;
 
 use crate::runner::Runner;
 
-const STRONG_TEAM_ADVANTAGE: f64 = 0.10;
+const STRONG_TEAM_ADVANTAGE: f64 = 0.1;
 
 type Score = f64;
 type ComponentName = String;
@@ -30,7 +31,7 @@ struct Placement {
     position: usize,
 }
 
-#[derive(Deserialize, Debug, Hash, PartialEq, Eq)]
+#[derive(Deserialize, Debug, Hash, PartialEq, Eq, Clone)]
 #[serde(untagged)]
 pub enum TeamIdentifier {
     Team(usize),
@@ -60,7 +61,7 @@ impl Team {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Tournament {
     // Linked hash map is used here to preserve order of the components during
     // deserialization.
@@ -80,6 +81,36 @@ impl Tournament {
 
     pub fn num_teams(&self) -> usize {
         self.get_team_numbers().count()
+    }
+
+    fn sanity_check_any_team_can_win(mut self) {
+        let winner_placement = self
+            .scoring
+            .iter()
+            .max_by_key(|(_, v)| OrderedFloat(**v))
+            .unwrap();
+        self.scoring = [(winner_placement.0.clone(), 1.0f64)].into_iter().collect();
+        let num_teams = self.num_teams();
+        let runner = Runner::new(self);
+        let mut rng = thread_rng();
+        let num_tries = 10000;
+        for strong_team in 0..num_teams {
+            assert!(
+                (0..num_tries).any(|_| {
+                    let teams = (0..num_teams)
+                        .map(|index| Team {
+                            index,
+                            strong: index == strong_team,
+                        })
+                        .collect();
+                    let mut runner = runner.clone();
+                    let result = runner.get_score_result(teams, &mut rng);
+                    result.strong_team > 0.0
+                }),
+                "Invalid tournament format: Team {} cannot win.",
+                strong_team
+            );
+        }
     }
 }
 
@@ -119,6 +150,7 @@ fn get_teams(num: usize, rng: &mut ThreadRng) -> Vec<Team> {
 fn run_tournament_for_file(file: &str) {
     println!("{file}");
     let t = read_tournament(&file);
+    t.clone().sanity_check_any_team_can_win();
     let num_teams = t.num_teams();
     let runner = Runner::new(t);
     let num_runs = 1000000;

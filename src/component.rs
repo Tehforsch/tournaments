@@ -44,7 +44,7 @@ impl BestOfN {
     }
 }
 
-impl<P> Component<P> {
+impl<P: std::fmt::Debug> Component<P> {
     pub fn run(&self, input: &mut [Team], rng: &mut ThreadRng) {
         match self.r#type {
             ComponentType::BestOf1 => BestOfN { num_games: 1 }.run(input, rng),
@@ -62,7 +62,10 @@ impl<P> Component<P> {
             BestOf1 | BestOf3 | BestOf5 | BestOf7 | BestOfN(_) => match placement {
                 "winner" => 0,
                 "loser" => 1,
-                _ => panic!("Wrong placement name: {}", placement),
+                _ => panic!(
+                    "Wrong placement name: {} in component: {:?}",
+                    placement, self
+                ),
             },
             GroupStage(group) => group.get_placement_index_from_placement_name(placement),
         }

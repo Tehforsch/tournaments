@@ -26,7 +26,7 @@ impl Runner {
                     .enumerate()
                     .find(|(_, (comp_name, _))| &component == comp_name)
                     .map(|(i, (_, component))| (i, component))
-                    .unwrap();
+                    .unwrap_or_else(|| panic!("Component not found: {}", component));
                 let placement_index = component.get_placement_index_from_placement_name(placement);
                 // The 0-index component is at position 1 in the placements vec because the first entry
                 // is the incoming teams.
