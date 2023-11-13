@@ -10,10 +10,9 @@ components:
     teams:
       [2, 3]
   final:
-    type: !BestOfN 1
+    type: !BestOfN 3
     teams:
       - [1st, group1]
       - [1st, group2]
 scoring:
   [winner, final]: 1.0
-  [loser, final]: 0.0

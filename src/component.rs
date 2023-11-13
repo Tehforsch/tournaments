@@ -37,8 +37,6 @@ impl BestOfN {
             input.swap(0, 1);
         }
     }
-
-    fn run_round_robin(&self, input: &mut [Team], rng: &mut ThreadRng) {}
 }
 
 impl<P> Component<P> {
@@ -70,7 +68,7 @@ pub struct GroupStage {
 
 impl GroupStage {
     fn run(&self, input: &mut [Team], rng: &mut ThreadRng) {
-        let mut num_games_won: HashMap<TeamIndex, usize> =
+        let mut num_games_won: HashMap<TeamIndex, i32> =
             input.iter().map(|team| (team.index, 0)).collect();
         for (i, team1) in input.iter().enumerate() {
             for team2 in input[i + 1..].iter() {
@@ -83,22 +81,22 @@ impl GroupStage {
                 }
             }
         }
-        input.sort_by_key(|team| num_games_won[&team.index]);
+        input.sort_by_key(|team| -num_games_won[&team.index]);
         self.tiebreak(&num_games_won, input, rng);
     }
 
     fn tiebreak(
         &self,
-        num_games_won: &HashMap<TeamIndex, usize>,
+        num_games_won: &HashMap<TeamIndex, i32>,
         input: &mut [Team],
         rng: &mut ThreadRng,
     ) {
         let ties = identify_tied_teams(input, num_games_won);
         for tie in ties {
-            BestOfN {
-                num_games: self.num_games_per_series,
+            GroupStage {
+                num_games_per_series: self.num_games_per_series,
             }
-            .run_round_robin(&mut input[tie.start_index..tie.end_index], rng);
+            .run(&mut input[tie.start_index..tie.end_index], rng);
         }
     }
 
@@ -126,7 +124,7 @@ struct TiedTeams {
 
 fn identify_tied_teams<'a>(
     teams: &'a [Team],
-    num_games_won: &'a HashMap<TeamIndex, usize>,
+    num_games_won: &'a HashMap<TeamIndex, i32>,
 ) -> Vec<TiedTeams> {
     debug_assert!(sorted(teams, num_games_won));
     teams
@@ -144,7 +142,7 @@ fn identify_tied_teams<'a>(
         .collect()
 }
 
-fn sorted(teams: &[Team], num_games_won: &HashMap<TeamIndex, usize>) -> bool {
+fn sorted(teams: &[Team], num_games_won: &HashMap<TeamIndex, i32>) -> bool {
     teams
         .windows(2)
         .all(|ts| num_games_won[&ts[0].index] >= num_games_won[&ts[1].index])
