@@ -17,6 +17,11 @@ pub struct Component<P> {
 
 #[derive(Deserialize, Debug, Clone, Copy)]
 pub enum ComponentType {
+    // For convenience
+    BestOf1,
+    BestOf3,
+    BestOf5,
+    BestOf7,
     BestOfN(usize),
     GroupStage(GroupStage),
 }
@@ -42,21 +47,24 @@ impl BestOfN {
 impl<P> Component<P> {
     pub fn run(&self, input: &mut [Team], rng: &mut ThreadRng) {
         match self.r#type {
+            ComponentType::BestOf1 => BestOfN { num_games: 1 }.run(input, rng),
+            ComponentType::BestOf3 => BestOfN { num_games: 3 }.run(input, rng),
+            ComponentType::BestOf5 => BestOfN { num_games: 5 }.run(input, rng),
+            ComponentType::BestOf7 => BestOfN { num_games: 7 }.run(input, rng),
             ComponentType::BestOfN(n) => BestOfN { num_games: n }.run(input, rng),
             ComponentType::GroupStage(group) => group.run(input, rng),
         }
     }
 
     pub fn get_placement_index_from_placement_name(&self, placement: &str) -> usize {
+        use ComponentType::*;
         match self.r#type {
-            ComponentType::BestOfN(_) => match placement {
+            BestOf1 | BestOf3 | BestOf5 | BestOf7 | BestOfN(_) => match placement {
                 "winner" => 0,
                 "loser" => 1,
                 _ => panic!("Wrong placement name: {}", placement),
             },
-            ComponentType::GroupStage(group) => {
-                group.get_placement_index_from_placement_name(placement)
-            }
+            GroupStage(group) => group.get_placement_index_from_placement_name(placement),
         }
     }
 }
