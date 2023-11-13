@@ -121,7 +121,7 @@ fn run_tournament_for_file(file: &str) {
     let t = read_tournament(&file);
     let num_teams = t.num_teams();
     let runner = Runner::new(t);
-    let num_runs = 10000000;
+    let num_runs = 1000000;
     let score: ScoreResult = (0..num_runs)
         .into_par_iter()
         .map(|_| {
@@ -131,9 +131,8 @@ fn run_tournament_for_file(file: &str) {
             runner.get_score_result(teams, &mut rng)
         })
         .sum();
-    dbg!(&score);
-    let expected_score = score.all_teams / num_runs as f64 / num_teams as f64;
-    let strong_team_score_advantage = score.strong_team / num_runs as f64 - expected_score;
+    let average_score = score.all_teams / num_runs as f64 / num_teams as f64;
+    let strong_team_score_advantage = score.strong_team / num_runs as f64 - average_score;
     println!(
         "Advantage: {:.3}",
         strong_team_score_advantage / STRONG_TEAM_ADVANTAGE

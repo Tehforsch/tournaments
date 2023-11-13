@@ -92,11 +92,13 @@ impl GroupStage {
         rng: &mut ThreadRng,
     ) {
         let ties = identify_tied_teams(input, num_games_won);
-        for tie in ties {
-            GroupStage {
-                num_games_per_series: self.num_games_per_series,
+        if ties.len() > 0 {
+            for tie in ties {
+                GroupStage {
+                    num_games_per_series: self.num_games_per_series,
+                }
+                .run(&mut input[tie.start_index..=tie.end_index], rng);
             }
-            .run(&mut input[tie.start_index..tie.end_index], rng);
         }
     }
 
