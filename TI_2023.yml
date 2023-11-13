@@ -1,0 +1,113 @@
+components:
+  group_a:
+    type: !GroupStage
+      num_games_per_series: 2
+    teams:
+      [0, 1, 2, 3]
+  group_b:
+    type: !GroupStage
+      num_games_per_series: 2
+    teams:
+      [4, 5, 6, 7]
+  group_c:
+    type: !GroupStage
+      num_games_per_series: 2
+    teams:
+      [8, 9, 10, 11]
+  group_d:
+    type: !GroupStage
+      num_games_per_series: 2
+    teams:
+      [12, 13, 14, 15]
+  seeding_group_ab_1:
+    type: !BestOf3
+    teams: [[1st, group_a], [4th, group_b]]
+  seeding_group_ab_2:
+    type: !BestOf3
+    teams: [[2nd, group_a], [3rd, group_b]]
+  seeding_group_ba_1:
+    type: !BestOf3
+    teams: [[1st, group_b], [4th, group_a]]
+  seeding_group_ba_2:
+    type: !BestOf3
+    teams: [[2nd, group_b], [3rd, group_a]]
+  seeding_group_cd_1:
+    type: !BestOf3
+    teams: [[1st, group_c], [4th, group_d]]
+  seeding_group_cd_2:
+    type: !BestOf3
+    teams: [[2nd, group_c], [3rd, group_d]]
+  seeding_group_dc_1:
+    type: !BestOf3
+    teams: [[1st, group_d], [4th, group_c]]
+  seeding_group_dc_2:
+    type: !BestOf3
+    teams: [[2nd, group_d], [3rd, group_c]]
+  ub_round1_1:
+    type: !BestOf3
+    teams: [[winner, seeding_group_ab_1], [winner, seeding_group_dc_1]]
+  ub_round1_2:
+    type: !BestOf3
+    teams: [[winner, seeding_group_ab_2], [winner, seeding_group_dc_2]]
+  ub_round1_3:
+    type: !BestOf3
+    teams: [[winner, seeding_group_ba_1], [winner, seeding_group_cd_1]]
+  ub_round1_4:
+    type: !BestOf3
+    teams: [[winner, seeding_group_ba_2], [winner, seeding_group_cd_2]]
+  lb_round1_1:
+    type: !BestOf3
+    teams: [[loser, seeding_group_ab_1], [winner, seeding_group_dc_1]]
+  lb_round1_2:
+    type: !BestOf3
+    teams: [[loser, seeding_group_ab_2], [winner, seeding_group_dc_2]]
+  lb_round1_3:
+    type: !BestOf3
+    teams: [[loser, seeding_group_ba_1], [winner, seeding_group_cd_1]]
+  lb_round1_4:
+    type: !BestOf3
+    teams: [[loser, seeding_group_ba_2], [winner, seeding_group_cd_2]]
+  lb_round2_1:
+    type: !BestOf3
+    teams: [[winner, lb_round1_1], [loser, ub_round1_4]]
+  lb_round2_2:
+    type: !BestOf3
+    teams: [[winner, lb_round1_2], [loser, ub_round1_3]]
+  lb_round2_3:
+    type: !BestOf3
+    teams: [[winner, lb_round1_3], [loser, ub_round1_2]]
+  lb_round2_4:
+    type: !BestOf3
+    teams: [[winner, lb_round1_4], [loser, ub_round1_1]]
+  lb_round3_1:
+    type: !BestOf3
+    teams: [[winner, lb_round2_1], [winner, lb_round2_2]]
+  lb_round3_2:
+    type: !BestOf3
+    teams: [[winner, lb_round2_3], [winner, lb_round2_4]]
+  ub_round2_1:
+    type: !BestOf3
+    teams: [[winner, ub_round1_1], [winner, ub_round1_2]]
+  ub_round2_2:
+    type: !BestOf3
+    teams: [[winner, ub_round1_3], [winner, ub_round1_4]]
+  lb_round4_1:
+    type: !BestOf3
+    teams: [[winner, lb_round3_1], [loser, ub_round2_1]]
+  lb_round4_2:
+    type: !BestOf3
+    teams: [[winner, lb_round3_2], [loser, ub_round2_2]]
+  lb_round5:
+    type: !BestOf3
+    teams: [[winner, lb_round4_1], [winner, lb_round4_2]]
+  ub_round3:
+    type: !BestOf3
+    teams: [[winner, ub_round2_1], [winner, ub_round2_2]]
+  lb_round6:
+    type: !BestOf3
+    teams: [[winner, lb_round5], [loser, ub_round3]]
+  grand_finals:
+    type: !BestOf3
+    teams: [[winner, lb_round6], [winner, ub_round3]]
+scoring:
+  [winner, grand_finals]: 1.0
